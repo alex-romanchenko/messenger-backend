@@ -14,5 +14,4 @@ register(@Body() body: { name: string; username: string; password: string }) {
 login(@Body() body: { username: string; password: string }) {
     return this.authService.login(body.username, body.password);
 }
-
 }

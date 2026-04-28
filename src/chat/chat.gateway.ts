@@ -20,7 +20,7 @@ import { Message } from '../messages/message.entity';
 })
 export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(
     @InjectRepository(User)
@@ -30,57 +30,78 @@ export class ChatGateway implements OnGatewayConnection {
     private messageRepo: Repository<Message>,
   ) {}
 
-  async handleConnection(client: Socket) {
+  handleConnection(client: Socket) {
     console.log('Client connected:', client.id);
-
-    const messages = await this.messageRepo.find({
-      relations: ['user'],
-      order: { createdAt: 'ASC' },
-    });
-
-    client.emit('messages', messages);
   }
 
   @SubscribeMessage('join')
   async handleJoin(
-    @MessageBody() data: { name: string },
+    @MessageBody() data: { username: string },
     @ConnectedSocket() client: Socket,
   ) {
-    let user = await this.userRepo.findOne({
-      where: { name: data.name },
+    const user = await this.userRepo.findOne({
+      where: { username: data.username },
     });
 
-    if (!user) {
-      user = this.userRepo.create({ name: data.name });
-      await this.userRepo.save(user);
-    }
+    if (!user) return;
 
     client.data.user = user;
 
-    console.log(`User joined: ${user.name}`);
+    console.log(`User joined: ${user.username}`);
+  }
+
+  @SubscribeMessage('joinChat')
+  handleJoinChat(
+    @MessageBody() data: { chatId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data.chatId) return;
+
+    client.join(`chat_${data.chatId}`);
+
+    console.log(`Client ${client.id} joined chat_${data.chatId}`);
   }
 
   @SubscribeMessage('sendMessage')
   async handleMessage(
-    @MessageBody() data: { text: string },
+    @MessageBody() data: { text: string; chatId: number },
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
 
-    if (!user) return;
+    if (!user) {
+      console.log('No user in socket');
+      return;
+    }
+
+    if (!data.chatId) {
+      console.log('No chatId');
+      return;
+    }
+
+    if (!data.text?.trim()) {
+      console.log('Empty message');
+      return;
+    }
+
+    client.join(`chat_${data.chatId}`);
 
     const message = this.messageRepo.create({
-      text: data.text,
+      text: data.text.trim(),
       user,
+      chat: { id: data.chatId },
     });
 
     await this.messageRepo.save(message);
 
     const fullMessage = await this.messageRepo.findOne({
       where: { id: message.id },
-      relations: ['user'],
+      relations: ['user', 'chat'],
     });
 
-    this.server.emit('newMessage', fullMessage);
+    console.log('MESSAGE SAVED:', fullMessage?.id);
+    console.log(`EMIT TO ROOM: chat_${data.chatId}`);
+
+    this.server.to(`chat_${data.chatId}`).emit('newMessage', fullMessage);
   }
 }

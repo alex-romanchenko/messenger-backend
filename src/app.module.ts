@@ -8,6 +8,8 @@ import { ChatModule } from './chat/chat.module';
 import { UsersModule } from './users/users.module';
 import { Contact } from './contacts/contact.entity';
 import { ContactsModule } from './contacts/contacts.module';
+import { Chat } from './chat/chat.entity';
+import { ChatMember } from './chat/chat-member.entity';
 
 @Module({
   imports: [
@@ -25,7 +27,7 @@ import { ContactsModule } from './contacts/contacts.module';
         username: config.get<string>('DB_USER'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
-        entities: [User, Message, Contact],
+        entities: [User, Message, Contact, Chat, ChatMember],
         synchronize: true,
       }),
     }),

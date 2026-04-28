@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
+import { Chat } from '../chat/chat.entity';
 
 @Entity('messages')
 export class Message {
@@ -18,6 +19,9 @@ export class Message {
   @CreateDateColumn()
   createdAt!: Date;
 
-  @ManyToOne(() => User, (user) => user.messages)
+  @ManyToOne(() => User, (user: User) => user.messages)
   user!: User;
+
+  @ManyToOne(() => Chat, (chat: Chat) => chat.messages)
+  chat!: Chat;
 }
