@@ -74,6 +74,7 @@ export class ContactsService {
       id: contact.friend.id,
       name: contact.friend.name,
       username: contact.friend.username,
+      avatar: contact.friend.avatar,
     }));
   }
 }

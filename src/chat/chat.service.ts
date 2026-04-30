@@ -82,4 +82,34 @@ export class ChatService {
       },
     });
   }
+
+  async createImageMessage(userId: number, chatId: number, filename: string) {
+  const user = await this.userRepo.findOne({
+    where: { id: userId },
+  });
+
+  const chat = await this.chatRepo.findOne({
+    where: { id: chatId },
+  });
+
+  if (!user || !chat) {
+    throw new NotFoundException('User or chat not found');
+  }
+
+  const imageUrl = `/uploads/messages/${filename}`;
+
+  const message = this.messageRepo.create({
+    text: '',
+    image: imageUrl,
+    user,
+    chat,
+  });
+
+  await this.messageRepo.save(message);
+
+  return this.messageRepo.findOne({
+    where: { id: message.id },
+    relations: ['user', 'chat'],
+  });
+}
 }

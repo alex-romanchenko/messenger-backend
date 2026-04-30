@@ -6,8 +6,13 @@ import {
   Param,
   Post,
   UnauthorizedException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 import { ChatService } from './chat.service';
 
@@ -42,5 +47,35 @@ export class ChatController {
   @Get(':chatId/messages')
   getMessages(@Param('chatId') chatId: string) {
     return this.chatService.getChatMessages(Number(chatId));
+  }
+
+  @Post(':chatId/image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/messages',
+        filename: (
+          req: unknown,
+          file: { originalname: string },
+          cb: (error: Error | null, filename: string) => void,
+        ) => {
+          const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          cb(null, uniqueName + extname(file.originalname));
+        },
+      }),
+    }),
+  )
+  uploadChatImage(
+    @Headers('authorization') authHeader: string,
+    @Param('chatId') chatId: string,
+    @UploadedFile() file: { filename: string },
+  ) {
+    const userId = this.getUserIdFromToken(authHeader);
+
+    return this.chatService.createImageMessage(
+      userId,
+      Number(chatId),
+      file.filename,
+    );
   }
 }

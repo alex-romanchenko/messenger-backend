@@ -13,8 +13,11 @@ export class Message {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
-  text!: string;
+  @Column({ nullable: true })
+  text?: string;
+
+  @Column({ nullable: true })
+  image?: string;
 
   @CreateDateColumn()
   createdAt!: Date;
