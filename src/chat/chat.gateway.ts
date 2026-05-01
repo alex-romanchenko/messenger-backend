@@ -13,6 +13,12 @@ import { Repository } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Message } from '../messages/message.entity';
 
+type SocketUser = {
+  id: number;
+  username: string;
+  name: string;
+};
+
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -62,12 +68,52 @@ export class ChatGateway implements OnGatewayConnection {
     console.log(`Client ${client.id} joined chat_${data.chatId}`);
   }
 
+  @SubscribeMessage('typing')
+  handleTyping(
+    @MessageBody() data: { chatId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const user = client.data.user as SocketUser | undefined;
+
+    if (!user) return;
+    if (!data.chatId) return;
+
+    console.log('EMIT TYPING:', data.chatId);
+
+    client.to(`chat_${data.chatId}`).emit('userTyping', {
+      chatId: data.chatId,
+      userId: user.id,
+      username: user.username,
+      name: user.name,
+    });
+  }
+
+  @SubscribeMessage('stopTyping')
+  handleStopTyping(
+    @MessageBody() data: { chatId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const user = client.data.user as SocketUser | undefined;
+
+    if (!user) return;
+    if (!data.chatId) return;
+
+    console.log('EMIT STOP TYPING:', data.chatId);
+
+    client.to(`chat_${data.chatId}`).emit('userStopTyping', {
+      chatId: data.chatId,
+      userId: user.id,
+      username: user.username,
+      name: user.name,
+    });
+  }
+
   @SubscribeMessage('sendMessage')
   async handleMessage(
     @MessageBody() data: { text: string; chatId: number },
     @ConnectedSocket() client: Socket,
   ) {
-    const user = client.data.user;
+    const user = client.data.user as User | undefined;
 
     if (!user) {
       console.log('No user in socket');
