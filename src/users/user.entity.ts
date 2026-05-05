@@ -18,6 +18,9 @@ export class User {
   @Column({ nullable: true })
   avatar?: string;
 
+  @Column({ nullable: true })
+  expoPushToken?: string;
+
   @OneToMany(() => Message, (message: Message) => message.user)
   messages!: Message[];
 }

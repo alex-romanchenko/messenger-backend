@@ -72,4 +72,13 @@ export class UsersService {
       avatar: avatarUrl,
     };
   }
+  async updatePushToken(userId: number, expoPushToken: string) {
+    await this.userRepo.update(userId, {
+    expoPushToken,
+    });
+
+    return {
+      message: 'Push token saved',
+    };
+}
 }

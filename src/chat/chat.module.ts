@@ -11,7 +11,7 @@ import { User } from '../users/user.entity';
 import { Message } from '../messages/message.entity';
 import { Chat } from './chat.entity';
 import { ChatMember } from './chat-member.entity';
-
+import { CallService } from './call.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Message, Chat, ChatMember]),
@@ -25,7 +25,7 @@ import { ChatMember } from './chat-member.entity';
     }),
   ],
   controllers: [ChatController],
-  providers: [ChatGateway, ChatService],
+  providers: [ChatGateway, ChatService, CallService],
   exports: [ChatService],
 })
 export class ChatModule {}

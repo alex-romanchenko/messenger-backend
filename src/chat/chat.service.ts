@@ -76,7 +76,7 @@ export class ChatService {
       where: {
         chat: { id: chatId },
       },
-      relations: ['user'],
+      relations: ['user', 'replyTo', 'replyTo.user'],
       order: {
         createdAt: 'ASC',
       },
@@ -84,32 +84,84 @@ export class ChatService {
   }
 
   async createImageMessage(userId: number, chatId: number, filename: string) {
-  const user = await this.userRepo.findOne({
-    where: { id: userId },
-  });
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+    });
 
-  const chat = await this.chatRepo.findOne({
-    where: { id: chatId },
-  });
+    const chat = await this.chatRepo.findOne({
+      where: { id: chatId },
+    });
 
-  if (!user || !chat) {
-    throw new NotFoundException('User or chat not found');
+    if (!user || !chat) {
+      throw new NotFoundException('User or chat not found');
+    }
+
+    const imageUrl = `/uploads/messages/${filename}`;
+
+    const message = this.messageRepo.create({
+      text: '',
+      image: imageUrl,
+      user,
+      chat,
+      status: 'sent',
+    });
+
+    await this.messageRepo.save(message);
+
+    return this.messageRepo.findOne({
+      where: { id: message.id },
+      relations: ['user', 'chat'],
+    });
+  }
+  async markMessagesAsDelivered(chatId: number, userId: number) {
+    const messages = await this.messageRepo.find({
+      where: {
+        chat: { id: chatId },
+      },
+      relations: ['user', 'chat'],
+    });
+
+    const messagesToUpdate = messages.filter(
+      (message) => message.user.id !== userId && message.status === 'sent',
+    );
+
+    for (const message of messagesToUpdate) {
+      message.status = 'delivered';
+      message.deliveredAt = new Date();
+    }
+
+    if (messagesToUpdate.length > 0) {
+      await this.messageRepo.save(messagesToUpdate);
+    }
+
+    return messagesToUpdate;
   }
 
-  const imageUrl = `/uploads/messages/${filename}`;
+  async markMessagesAsRead(chatId: number, userId: number) {
+    const messages = await this.messageRepo.find({
+      where: {
+        chat: { id: chatId },
+      },
+      relations: ['user', 'chat'],
+    });
 
-  const message = this.messageRepo.create({
-    text: '',
-    image: imageUrl,
-    user,
-    chat,
-  });
+    const messagesToUpdate = messages.filter(
+      (message) => message.user.id !== userId && message.status !== 'read',
+    );
 
-  await this.messageRepo.save(message);
+    for (const message of messagesToUpdate) {
+      message.status = 'read';
+      message.readAt = new Date();
 
-  return this.messageRepo.findOne({
-    where: { id: message.id },
-    relations: ['user', 'chat'],
-  });
-}
+      if (!message.deliveredAt) {
+        message.deliveredAt = new Date();
+      }
+    }
+
+    if (messagesToUpdate.length > 0) {
+      await this.messageRepo.save(messagesToUpdate);
+    }
+
+    return messagesToUpdate;
+  }
 }

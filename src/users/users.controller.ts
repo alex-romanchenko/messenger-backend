@@ -50,14 +50,23 @@ export class UsersController {
     return this.usersService.updateProfile(userId, body.name, body.username);
   }
   @Patch('me/password')
-updatePassword(
-  @Headers('authorization') authHeader: string,
-  @Body() body: { password: string },
-) {
-  const userId = this.getUserIdFromToken(authHeader);
+  updatePassword(
+    @Headers('authorization') authHeader: string,
+    @Body() body: { password: string },
+  ) {
+    const userId = this.getUserIdFromToken(authHeader);
 
-  return this.usersService.updatePassword(userId, body.password);
-}
+    return this.usersService.updatePassword(userId, body.password);
+  }
+  @Post('push-token')
+  savePushToken(
+    @Headers('authorization') authHeader: string,
+    @Body() body: { expoPushToken: string },
+  ) {
+    const userId = this.getUserIdFromToken(authHeader);
+
+    return this.usersService.updatePushToken(userId, body.expoPushToken);
+  }
   @Post('avatar')
   @UseInterceptors(
     FileInterceptor('file', {
